@@ -69,22 +69,30 @@
     总之类的属性归类来管理,对象的属性归对象来管理,两者没有关系
 
     类的方法一定要加在方法的上面加上一个修饰器@classmethod(java注解),类方法的参数cls,代表当前的类
+
+    @staticmethod 静态方法属于类,没有默认传递的参数,可以通过类对象来调用,也可以通过类名来调用
 ```python
-    class User(object):
-        name = "zs"  # 类的公共属性
-        __password = "123456"  # 类的私有属性
+class User(object):
+    name = "zs"  # 公共属性
+    __password = "123456"  # 私有属性
 
-        def __init__(self, sex, username):
-            self.sex = sex
-            self.username = username
+    def __init__(self, sex, username):
+        self.sex = sex
+        self.username = username
 
-        def to_string(self):
-            print("姓名:%s,密码:%s,性别:%s,名字:%s" % (self.username, User.__password, self.sex, User.name))
+    def to_string(self):
+        print("姓名:%s,密码:%s,性别:%s,名字:%s" % (self.username, User.__password, self.sex, User.name))
 
-        @classmethod # 类的方法一定要加在方法的上面加上一个修饰器(java注解),类方法的参数cls,代表当前的类
-        def test(cls):
-            cls.name = 'ww'
-            print("---test---")
+    @classmethod # 类的方法一定要加在方法的上面加上一个修饰器(java注解),类方法的参数cls,代表当前的类
+    def test(cls):
+        cls.name = 'ww'
+        print("---test---")
+
+    @staticmethod # 静态方法属于类,没有默认传递的参数,可以通过类对象来调用,也可以通过类名来调用
+    def test2():
+        User.name = 'ls'
+        print("---静态方法---")
+
 
     if __name__ == '__main__':
         user1 = User("男", "goldbin")
@@ -93,21 +101,24 @@
         user2.to_string()
         user1.test()
         User.test()
+        User.test2()
         print(User.name)
 ```
 
 # 面向对象属性和方法总结
-## 属性
+
+### 属性
 | 属性叫法 | 变量叫法    |  描述   |
 | ----------------- | --------| :-----------------------: |
 | 类属性(私有和公有)  | 类变量   | 所属对象共享同一份类属性    |
 | 实例化(私有和公有)  | 成员变量  | 每个不同对象,有不一样值的实例属性   |
-## 方法
+
+### 方法
 | 方法的类别 | 语法 | 描述 |
 | ----------- | ----------- | ----------- |
-| 类方法       |             |             |
-| 静态方法     |              |             |
-| 对象方法     |              |              |
+| 类方法       |   @classmethod       |   第一个参数是cls,默认传递   |
+| 静态方法     |   @staticmethod      |       没有默认传递的藏书      |
+| 对象方法     |   del 方法名          |   第一个参数是self,默认传递   |
 
 # 多继承
 ```python
