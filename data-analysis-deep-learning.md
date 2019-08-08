@@ -62,11 +62,13 @@
         __ 表示 private 不能被继承
         不带__这个的表示 公共属性 可以被继承
 
-# 属于类的属性
+# 属于类的属性和方法
     多个对象共用这个属性,在内存中只有一份,相当于java中的静态属性
     相当于java中 public static
     对象是不能修改和删除类属性,只有类才能修改和删除类属性,
     总之类的属性归类来管理,对象的属性归对象来管理,两者没有关系
+
+    类的方法一定要加在方法的上面加上一个修饰器@classmethod(java注解),类方法的参数cls,代表当前的类
 ```python
     class User(object):
         name = "zs"  # 类的公共属性
@@ -79,13 +81,27 @@
         def to_string(self):
             print("姓名:%s,密码:%s,性别:%s,名字:%s" % (self.username, User.__password, self.sex, User.name))
 
+        @classmethod # 类的方法一定要加在方法的上面加上一个修饰器(java注解),类方法的参数cls,代表当前的类
+        def test(cls):
+            cls.name = 'ww'
+            print("---test---")
 
     if __name__ == '__main__':
         user1 = User("男", "goldbin")
         user1.to_string()
         user2 = User("女", "kevin")
         user2.to_string()
+        user1.test()
+        User.test()
+        print(User.name)
 ```
+
+# 总结
+| 参数 | aa | bb | 类型|
+| 参数 | aa | bb | 类型|
+| 参数 | aa | bb | 类型|
+| 参数 | aa | bb | 类型|
+
 
 # 多继承
 ```python
