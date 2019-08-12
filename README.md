@@ -222,3 +222,19 @@
     定时器事件的监听
         通过pygame.event.get()可以获取当前时刻的事件列表
         遍历列表并且判断event.type是否等于eventid，如果相等,表示定时器事件发生
+    
+# 碰撞检测
+    pygame提供了两个非常方便的方法可以实现碰撞检测
+        pygame.sprite.groupcollide()
+    两个精灵组中所有精灵的碰撞检测
+        groupcollide(group1, group2, dokill1, dokill2, collied=Nore) -> Sprite_dict
+            如果dokill设置为True,则发生碰撞的精灵将被自动移除
+            collided参数是用于 计算碰撞的回调函数
+                如果没有指定,则每个精灵必须是一个rect属性
+    pygame.sprite.spritecollide()
+        判断某个精灵和指定精灵组中的碰撞
+        spritecollide(sprite, group, dokill, collided = None) -> Sprite_list
+            如果dokill设置为True，则指定精灵组中发生的精灵将自动被移除
+            collided参数是用于计算碰撞的回调函数
+                如果没有指定,则每个精灵必须有一个rect属性
+            返回精灵组中根精灵发生碰撞的精灵列表
