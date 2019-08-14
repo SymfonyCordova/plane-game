@@ -49,6 +49,7 @@
     __init__ 初始化方法
     __str__ toString()
     __del__ 销毁方法
+    __call__ 将一个类当做方法调用时会调用该类的__call__方法
 
     执行流程 __new__ > __init__ >__del__
 
@@ -59,8 +60,36 @@
 
 # 方法和属性前面修饰符
     方法和属性前面
-        __ 表示 private 不能被继承
-        不带__这个的表示 公共属性 可以被继承
+        _ 表示 private 不能被继承
+        不带_这个的表示 公共属性 可以被继承
+
+    property用法
+        为私有属性添加getter和setter方法
+        使用property升级getter和setter方法
+            money = property(getMoney, setMoney)
+        使用property取代getter和setter方法
+            @property
+            @money.setter
+```python
+    class Test(object):
+        def __init__(self):
+            self.__num = 100
+
+        @property
+        def num(self):
+            return self.__num
+
+        @num.setter
+        def num(self, num):
+            if num < 100:
+                self.__num = num
+
+
+    if __name__ == '__main__':
+        t = Test()
+        t.num = 20
+        print(t.num)
+```
 
 # 属于类的属性和方法
     多个对象共用这个属性,在内存中只有一份,相当于java中的静态属性
@@ -123,6 +152,100 @@ class User(object):
 | 类方法       |   @classmethod       |   第一个参数是cls,默认传递   |
 | 静态方法     |   @staticmethod      |       没有默认传递的参数      |
 | 对象方法     |   del 方法名          |   第一个参数是self,默认传递   |
+
+### 为对象动态添加属性
+```python
+    class Person(object):
+        def __init__(self,name,age):
+            self.name = name
+            self.age = age
+
+
+    if __name__ == '__main__':
+        p = Person("xiaoming", 20)
+        p.sex = 'male'
+        print(p.sex)
+        dir(p)
+        p2 = Person("xiaohong",19)
+        p2.sex = 'man'
+        print(p2.sex)
+        Person.addr = 'beijing'
+        print(p.addr)
+        print(p2.addr)
+        #  对象new出来指向了一个引用(指针) 所以给该对象的引用添加一个属性,这个属性只属于这个对象的引用
+        #  给类加属性那么每个new出来的对象都有这个属性
+```
+
+### 为对象动态添加实例方法
+```python
+    import types
+
+    class Person(object):
+        def __init__(self, name, age):
+            self.name = name
+            self.age = age
+
+        def eat(self):
+            print("eat method")
+
+    def showInfo(self):
+        print(self.name)
+        print(self.age)
+
+    if __name__ == '__main__':
+        p = Person("xiaoming", 20)
+        p2 = Person("xiaohong", 18)
+        p.showInfo = types.MethodType(showInfo, p)
+        p.showInfo()
+        # p2.showInfo()  # AttributeError: 'Person' object has no attribute 'showInfo'
+        p2.showInfo = types.MethodType(showInfo, p2)
+        p2.showInfo()
+```
+### 为类添加静态方法和类方法
+```python
+    import types
+
+    class Person(object):
+        def __init__(self, name, age):
+            self.name = name
+            self.age = age
+
+        def eat(self):
+            print("eat method")
+
+    @classmethod
+    def fun1(cls):
+        print("classMethod")
+
+    @staticmethod
+    def fun2(a, b):
+        return a + b
+
+    if __name__ == '__main__':
+        p = Person("xiaoming", 20)
+        p2 = Person("xiaohong", 18)
+        Person.fun1 = fun1
+        p.fun1()
+        p2.fun1()
+        Person.fun2 = fun2
+        print(p.fun2(2, 3))
+        print(p2.fun2(2, 3))
+```
+
+### 限制类的属性的添加
+    要注意, __slots__定义的属性仅对当前类实例起作用,对继承的子类是不起作用的
+```python
+    class Student(object):
+        __slots__ = ("name", "age")
+
+    if __name__ == '__main__':
+        student = Student()
+        student.name = "john"
+        student.age = 20
+        print(student.name)
+        print(student.age)
+        # student.sex = "male"  # AttributeError: 'Student' object has no attribute 'sex'
+```
 
 # 多继承
 ```python
@@ -262,6 +385,229 @@ class User(object):
 | 字典(dict)  | a={key:value} | 没有先后顺序,没有有下标,key不可以重复,value可变类型 |
 | 集合(set)   | a={}          | 没有先后顺序,没有下标,不可以重复,可变类型          |
 
+    使用set类型可以快速的完成对类型list中的元素去重复的功能
+
+```python
+    a = [1, 3, 2, 1, 1, 1, 1]
+    print(a)  # [1, 3, 2, 1, 1, 1, 1]
+    b = set(a)
+    print(b)  # {1, 2, 3}
+    c = tuple(b)
+    print(c)  # (1, 2, 3)
+    d = list(c)
+    print(d)  # [1, 2, 3]
+```
+
+### 导入模块的路径设置
+    查看模块搜索路径
+        import sys
+        sys.path
+    添加搜索路径
+        sys.path.append('/home/sxt/xxx')
+        sys.path.insert(0, '/home/sxt/xxx')
+    重新导入模块
+        from imp import *
+        reload(模块名)
+    查看安装的模块
+        help("modules")
+
+### is和==
+    is是比较两个引用是否指向了同一个对象(引用比较)
+    ==是比较对象是否相等(值比较)
+
+# 浅拷贝与深拷贝
+    浅拷贝是对于一个对象的顶层拷贝,通俗的理解:拷贝了引用,并没有拷贝内容
+    深拷贝是对于一个对象所有层次的拷贝(递归)
+    import copy
+        copy.deepcopy() #深拷贝
+        copy.copy() #浅拷贝
+    浅拷贝对不可变类型和可变类型的copy不同(例如列表和元祖)
+    分片表达式可以赋值一个序列
+    字典copy方法可以拷贝一个字典
+    有内置函数可以生成拷贝(list)
+
+# 生成器
+    在python中,一边循环一边计算的机制,称为生成器: generator
+        创建生成器:G = (x*2 for x in range(5))
+        可以通过next()函数获得生成器的下一个返回值
+        没有更多的元素时,抛出StopIteration
+        生成器也可以使用for循环,因为生成器是可迭代对象
+    创建生成器的另外一种方法:
+        def fib(times): # 斐波拉契数列(Fibonacci)
+            n = 0
+            a, b = 0, 1
+            while n < times:
+                yield b # yield(放弃)函数执行到这个地方会交出cpu控制权,停止执行,调用next再继续
+                a, b = b, a+b
+                n += 1
+            return 'done'
+        g = fib(5)
+        next(g) # 只有next函数调用才会得到值
+    其他生成器方法:
+        使用__next__()方法
+        使用send()方法
+            next()等价于send(None)
+            def gen():
+                i = 0
+                while i < 5:
+                    temp = yield i
+                    print(temp)
+                    i+=1
+        生成器的特点:
+            1.节约内存
+            2.迭代到下一次的调用时,所使用的参数都是第一次所保留下的
+    迭代是访问集合的一种方式.迭代器是一个可以遍历的位置的对象.迭代器只能往前不会后退
+    可迭代对象(Iterable)
+        集合数据类型, 如 list, tuple, dict, set , str 等
+        生成器和带yield的generator function
+    如何判断对象可迭代?
+        from collections import Iterable
+        isinstance([], Iterable)
+    迭代器(Iterator):可以被next()
+    迭代器(Iterator):可以被next()函数调用并不断返回下一个值的对象为迭代器
+        from collections import Iterator
+        isinstance((x for x in range(10), Iterator)
+        iter()函数:将可迭代的对象转成迭代器
+
+# 闭包和装饰器
+    函数内部返回或者调用一个函数
+    装饰器
+        使用闭包,给一个函数作为参数,返回一个新的增强的函数
+        使用@w1注解放到需要增强的函数
+        装饰器的使用场景
+            1.引入日志
+            2.函数执行时间统计
+            3.执行函数前预备处理
+            4.执行函数后清理功能
+            5.权限校验等场景
+            6.缓存
+```python
+    def doca(func):
+        def wrapper():
+            # 函数之前
+            print(func.__name__)
+            func()
+            # 函数之后
+        return wrapper
+
+    @doca # 可以有多个装饰 可以对有参函数进行装饰 可以对不定长参数函数进行装饰
+    def fun():
+        print("a")
+```
+
+# 类装饰器
+    装饰器函数其实是这样的一个接口约束,它必须接受一个callable对象作为参数,然后返回一个callable对象
+    一般callable对象都是函数,但也有例外.只要某个对象重写了___call__()方法,那么这个对象就是callable的
+```python
+    class Test(object):
+        def __call__(self, *args, **kwargs):
+            print("call me")
+
+    if __name__ == '__main__':
+        t = Test()
+        t()
+
+
+    class Test(object):
+        def __init__(self, func):
+            print("func:%s" % func.__name__)
+            self.func = func
+
+        def __call__(self, *args, **kwargs):
+            print("附加功能...")
+            self.func()
+
+
+    @Test  # 生成一个Test对象,所以会调用__init__方法,并且把下面装饰的函数作为参数传进去
+    def fun():
+        print("fun")
+
+
+    if __name__ == '__main__':
+        fun()  # 调用Test的一个对象的__call__方法
+        # func:fun 初始化方法调用
+        # 附加功能...
+        # fun
+```
+
+# 对象池
+    python为了优化速度,使用了小整数[-5,257)对象池,避免为整数频繁申请和销毁内存空间
+    同理,单个字符也提供对象池,常驻内存
+    每一个大整数,均创建一个新的对象
+    对于字符串,单个单词,不可修改,默认开启intern机制,采用引用计数机制共用对象,引用计数为0则销毁
+
+# 垃圾回收GC
+    Garbage collection(垃圾回收)
+        为新生成的对象分配内存
+        识别哪些垃圾对象
+        从垃圾对象那里回收内存
+    python采用的是引用计数机制为主,标记-清除和分代收集两种机制为辅的策略
+    python里每一个东西都是对象,他们的核心就是一个结构体：PyObject
+```c
+    typedef struct object{
+        int ob_refcnt;
+        struct_typeobject *ob_type;
+    }PyObject
+    #define Py_INCREF(op)((op)->ob_refcnt++) //增加计数
+    #define Py_DECREF(op)
+        if(--(op)->ob_refcnt!=0)
+            ;
+        else
+            __Py_Dealloc((PyObject *)(op))
+```
+    引用计数机制的优点:
+        简单
+        实时性: 一旦没有了引用,内存就直接释放了.不用像其他机制等到特定时机.
+            实时性还带来一个好处:处理回收内存的时间分摊到了平时
+    引用计数机制的缺点
+        维护引用计数消耗资源
+        循环引用
+    导致引用计数+1的情况
+        对象被创建                      例如 a = 23
+        对象被引用                      例如 b = a
+        对象被作为参数,传入到一个函数中    例如 func(a)
+        对象作为一个元素,存储在容器中      例如 list1 = [a,a]
+    导致引用计数-1的情况
+        对象的别名被显示销毁              例如 del a
+        对象的别名被赋予新的对象           例如 a = 24
+        一个对象离开它的作用域,例如f函数执行完毕时,func函数中的局部变量(全局变量不会)
+        对象所在的容器被销毁,或从容器中删除对象
+    查看一个对象的引用的计数
+        import sys
+        a = "hello world"
+        sys.getrefcount(a)
+    有三种情况会触发垃圾回收:
+        1.调用gc.collect()
+        2.当gc模块的计数器达到阀值的时候
+        3.程序退出的时候
+    GC方法
+        垃圾回收后的对象放在gc.garbage列表里面
+        gc.get_threshold()获取的gc模块中自动执行垃圾回收的频率
+        gc.set_threshold(threshold(),threshold1[,threshold2])设置自动执行垃圾回收的频率
+        gc.get_count()获取当前自动执行垃圾回收的计数器,返回一个长度为3的列表
+        gc.collect([generation])显示进行垃圾回收,可以输入参数
+            参数
+                0 代表只检查第一代的对象
+                1 代表检查一二代的对象
+                2 代表检查一二三代的对象
+                不传参数 执行一个full collection 也就是等于传2
+            返回值
+                返回不可达(unreachable objects) 对象的数目
+        gc模块唯一处理不了的时循环引用的类都是___del__方法,所以项目中要避免定义___del__方法
+
+# 内建属性
+| 常用专有属性 | 说明 | 触发方式 |
+| ----------- | ----------- | ----------- |
+| __init__           | 构造初始化函数          | 创建实例后赋值时使用在___new__后 |
+| __new__            | 生成实例所需属性         | 创建实例时   |
+| __class__          | 实例所在的类            | 实例 __class__ |
+| __str__            | 实例字符串表示,可读性    | print(类的实例)如没实现,使用repr结果 |
+| __repr__           | 实例字符串表示,准确性    | 类实例回车或者print(repr(类实例)) |
+| __del__            | 析构                   | del删除实例                    |
+| __dict__           | 实例自定义属性           | vars(实例___dict__)            |
+| __doc__            | 类文档,子类不继承        | help(类或实例)           |
+| __getattribute__   | 属性访问拦截器           | 访问实例属性           |
+| __basses__         | 类的所有父类             | 类名.__basses__           |
 
 # 安装库
     sudo pip3 install numpy -i https://mirrors.aliyun.com/pypi/simple/
