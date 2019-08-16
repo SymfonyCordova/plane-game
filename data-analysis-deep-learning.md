@@ -595,7 +595,7 @@ class User(object):
                 返回不可达(unreachable objects) 对象的数目
         gc模块唯一处理不了的时循环引用的类都是___del__方法,所以项目中要避免定义___del__方法
 
-# 内建属性
+# 内建属性和内建函数
 | 常用专有属性 | 说明 | 触发方式 |
 | ----------- | ----------- | ----------- |
 | __init__           | 构造初始化函数          | 创建实例后赋值时使用在___new__后 |
@@ -607,8 +607,601 @@ class User(object):
 | __dict__           | 实例自定义属性           | vars(实例___dict__)            |
 | __doc__            | 类文档,子类不继承        | help(类或实例)           |
 | __getattribute__   | 属性访问拦截器           | 访问实例属性           |
-| __basses__         | 类的所有父类             | 类名.__basses__           |
+| __bases__         | 类的所有父类             | 类名.__bases__           |
 
+    dir(__builtins__)
+    range(start,stop[,step])计数从start开始,默认是从0开始,到stop结束,但不包括stop,每次跳跃的间距,默认1
+    map(function,sequence[,sequence,...])根据提供的函数对指定序列做映射
+    filter(function or Nore, sequence)对指定序列执行过滤操作
+    reduce(function, sequence[, initial]) 对参数序列中元素进行累积
+        在python3里,reduce()函数已经被从全局名字空间移除了,它现在被放置在functools模块里
+        *args func(1,2,3,4) 传元祖
+        **args func(a='python', b='json') 传的是字典
+
+# 调试器
+    执行时调试
+        python -m pdb some.py
+    交互式调试
+        import pdb
+        pdb.run('testfun(args)')
+    程序里埋点
+        import pdb
+        pdb.set_trace()
+
+| 命令 | 简写命令 | 作用 |
+| ----------- | ----------- | ----------- |
+|  break       |     b     |    设置断点          |
+|  continue    |     c     |  继续执行程序         |
+|  list        |     l     |  查看当前执行的代码段  |
+|  step        |     s     |  进入函数            |
+|  return      |     r     |  执行代码直到从当前函数返回 |
+|  quit        |     q     |  中止并退出 |
+|  next        |     n     |  执行下一行 |
+|  print       |     p     |  打印变量的值 |
+|  help        |     h     |  帮助 |
+|  args        |     a     |  查看传入参数 |
+|  回车         | 重复上一条命令 |           |
+|  break       |     b     |  显示所有断点  |
+|  break lineno |     b lineno     |  在指定行设置断点  |
+|  break file lineno |     b file lineno     |  在指定文件行设置断点  |
+|  clear num  |          |  删除指定断点  |
+|   bt  |          |  查看函数调用栈帧  |
+
+# 多进程和多线程
+    fork
+    进程之间不能共享全局变量
+    多个fork的问题
+```python
+    import os
+    import time
+
+    num = 100  # 进程之间不能共享全局变量
+    pid = os.fork()
+    if pid < 0:
+        print("fork()调用失败")
+    elif pid == 0:
+        time.sleep(2)
+        num += 1
+        print("子进程,pid:%d, 父进程id:%d,num:%d" % (os.getpid(), os.getppid(), num))
+    else:
+        time.sleep(3)
+        print("父进程,pid:%d子进程id:%d,num:%d" % (os.getpid(), pid, num))
+```
+    由于Python是跨平台的,自然也应该提供一个跨平台的多进程支持
+    multiprocessing模块就是跨平台版本的多进程模块
+    multiprocessing模块提供了一个Process类来代表一个进程对象
+    创建子进程时,只需要传入一个执行函数和函数的参数,创建一个Process实例,用start()方法启动,这样创建进程比fork()还要简单
+    Process([group[,target[,name[,args[,kwargs]]]]])
+        target:表示这个进程实例所调用的对象
+        args:表示调用对象的位置参数元组
+        kwargs:表示调用对象的关键字参数字典
+        name: 为当前进程实例的别名
+        group: 大多数情况下用不到
+    join()方法可以等待子进程结束后再继续往下运行,通常用于进程的同步
+    Process类常用方法:
+        is_alive(): 判断进程实例是否还在执行
+        join([timeout]): 是否等待进程实例执行结束,或等待多少秒
+        start(): 启动进程实例(创建子进程)
+        run(): 如果没有给定target参数,对这个对象调用start()方法时,就执行对象中的run()方法
+        terminate(): 不管任务是否完成,立即终止
+    Process类常用属性:
+        name: 当前进程实例别名,默认为Process-N,N为从1开始递增的整数
+        pid: 当前进程实例的PID值
+    创建新的进程还能够使用类的方式,可以自定义一个类,继承Process类,每次实例化这个类的时候,就等同于实例化一个进程对象
+        需要重写run方法
+```python
+    code1
+        from multiprocessing import Process
+        import os
+        import time
+
+        def fun(name):
+            time.sleep(3)
+            print("子进程id:%d,父进程id:%d,name:%s" % (os.getpid(), os.getppid(),name))
+
+        print("父进程")
+        #  创建子进程
+        p = Process(target=fun, args=("test",))
+        #  开始执行子进程
+        p.start()
+        #  父进程等待子进程结束
+        p.join()
+        print("子进程已经结束")
+    code2
+        from multiprocessing import Process
+        import time
+
+        def fun(name, num, **kwargs):
+            time.sleep(2)
+            print("子进程: name:%s,num:%d" % (name, num))
+            for k, v in kwargs.items():
+                print("%s:%s" % (k, v))
+
+        print("父进程")
+        p = Process(target=fun, name="p1", args=("test", 10,), kwargs={'a': 10, 'b': 20})
+        p.start()
+        p.join(1)
+        print("子进程的名字:%s,id:%d" % (p.name, p.pid))
+        p.terminate()
+        print("子进程已结束")
+    code3
+        from multiprocessing import Process
+        import time
+        import os
+
+        # 定义自己的进程类
+        class CustomProcess(Process):
+            def __init__(self, interval):
+                super().__init__()
+                self.interval = interval
+
+            def run(self) -> None:
+                print("子进程")
+                startTime = time.time()
+                time.sleep(self.interval)
+                stopTime = time.time()
+                print("子进程id:%d,父进程id:%d,执行了%ds" % (os.getpid(), os.getppid(), stopTime-startTime))
+
+        if __name__ == '__main__':
+            print("主进程")
+            startTime = time.time()
+            p = CustomProcess(2)
+            p.start()
+            p.join()
+            stopTime = time.time()
+            print("子进程已结束,花费了%ds" % (stopTime-startTime))
+```
+    多个进程和进程池
+    当需要创建的子进程数量不多时,可以直接利用multiprocessing中的Process动态
+        生成多个进程,但如果是上百甚至上千的目标,手动的去创建进程的工作量巨大
+        此时就可以用到multiprocessing模块提供的Pool方法
+    初始化Pool时,那么指定一个最大进程数,当有新的请求提交到Pool中时,
+        如果池还没有满,那么就会创建一个新的进程用来执行该请求;但如果池中
+        的进程数已经达到指定的最大值,那么该请求就会等待,直到池中有进程结束,才会创建新的进程执行
+    multiprocessing.Pool常用函数解析
+        apply_async(func[,args[,kwds]]) 使用非阻塞方式调用func(并执行,堵塞方式必须等待
+            上一个进程退出才能执行下一个进程),args为传递给func参数列表,kwds为传递给func的关键字参数列表
+        apply(func[,args[,kwds]]) 使用阻塞方式调用func
+        close() 关闭Pool,使其不再接受新的任务
+        terminate() 不管任务是否完成,立即终止
+        join() 主进程阻塞,等待子进程的退出,必须在close或terminate之后使用
+
+```python
+    code1
+        from multiprocessing import Process
+        import time
+        import os
+
+        # 定义自己的进程类
+        class CustomProcess(Process):
+            def __init__(self, interval):
+                super().__init__()
+                self.interval = interval
+
+            def run(self) -> None:
+                print("子进程")
+                startTime = time.time()
+                time.sleep(self.interval)
+                stopTime = time.time()
+                print("子进程id:%d,父进程id:%d,执行了%ds" % (os.getpid(), os.getppid(), stopTime-startTime))
+
+        if __name__ == '__main__':
+            print("主进程")
+            startTime = time.time()
+            childs = []
+            for x in range(5):
+                p = CustomProcess(x+1)
+                p.start()
+                childs.append(p)
+                # p.join()  #这个很关键这个用来进程之前的同步 注释和不注释执行效果实不一样的
+            for item in childs:
+                item.join()
+            stopTime = time.time()
+            print("子进程已结束,花费了%ds" % (stopTime-startTime))
+    code2
+        from multiprocessing import Pool
+        import time
+        import os
+
+        def worker(msg):
+            print("子进程pid:%d" % os.getpid())
+            startTime = time.time()
+            time.sleep(2)
+            stopTime = time.time()
+            print("子进程msg:%s,花费的时间%d" % (msg, stopTime - startTime))
+
+        if __name__ == '__main__':
+            #  创建进程池,最大进程数3
+            pool = Pool(3)
+            for x in range(10):
+                #  pool.apply_async(worker, (x,))  # 异步请求
+                pool.apply(worker, (x,))  # 同步请求
+            # 关闭进程池
+            pool.close()
+            #  父进程等待进程池的结束
+            pool.join()
+            print("进程池已结束")
+```
+
+# 进程间通信
+    消息队列,管道
+```python
+    code1: 进程间使用管道通信
+        from multiprocessing import Process, Queue
+        import time, random
+
+        def write(queue):
+            """
+            :type queue: Queue
+            """
+            for item in "ABC":
+                print("正在往消息队列写入%s" % item)
+                queue.put(item)
+                time.sleep(random.random())
+
+        def reader(queue):
+            """
+            :type queue: Queue
+            """
+            while True:
+                if not queue.empty():
+                    item = queue.get()
+                    print("从消息队列读出%s" % item)
+                else:
+                    break
+
+        if __name__ == '__main__':
+            # 创建消息队列
+            q = Queue()
+            #  创建写入进程
+            pw = Process(target=write, args=(q,))
+            pw.start()
+            pw.join()
+            #  创建读进程
+            pr = Process(target=reader, args=(q,))
+            pr.start()
+            pr.join()
+            print("所有数据已经读完")
+
+    code2: 进程池使用管道通信
+        from multiprocessing import Pool, Manager
+        import time, random
+
+        def write(queue):
+            """
+            :type queue: Queue
+            """
+            for item in "ABC":
+                print("正在往消息队列写入%s" % item)
+                queue.put(item)
+                time.sleep(random.random())
+
+        def reader(queue):
+            """
+            :type queue: Queue
+            """
+            while True:
+                if not queue.empty():
+                    item = queue.get()
+                    print("从消息队列读出%s" % item)
+                else:
+                    break
+
+        if __name__ == '__main__':
+            # 创建消息队列
+            q = Manager().Queue()
+            # 创建进程池
+            pool = Pool(3)
+            #  创建写入进程
+            pool.apply(write, (q,))
+            #  创建读进程
+            pool.apply(reader, (q,))
+            pool.close()
+            pool.join()
+            print("所有数据已经读完")
+```
+
+# 多线程
+    python的thread模块是比较底层的模块
+    python的threading模块是对thread做了一些包装的,可以更加方便的被使用
+    使用threading模块时,往往会定义一个新的子类class,只要继承threading.Thread就可以了,然后重写run方法
+
+    在一个进程内的所有线程共享全局变量,能够在不适用其他方式的前提下完成多线程之间的数据共享(这点比多进程要好)
+    缺点就是,线程是对全局变量随意遂改可能造成多线程之间对全局变量的混乱(即线程非安全)
+```python
+    code1:一般线程代码
+        import threading
+        import time
+
+        def fun(num):
+            print("线程执行%d" % num)
+            time.sleep(2)
+
+        if __name__ == '__main__':
+            for i in range(5):
+                t = threading.Thread(target=fun, args=(i + 1,))
+                t.start()
+            print("主线程结束")
+    code2: 查看当前线程数量
+        import threading
+        import time
+
+        def sing():
+            for i in range(3):
+                print("我正在唱歌....")
+                time.sleep(1)
+
+        def dance():
+            for i in range(3):
+                print("我正在跳舞....")
+                time.sleep(2)
+
+        if __name__ == '__main__':
+            st = threading.Thread(target=sing)
+            dt = threading.Thread(target=dance)
+            st.start()
+            dt.start()
+            while True:
+                length = len(threading.enumerate())
+                print("当前线程数量%d" % length)
+                if length <= 1:
+                    break
+                time.sleep(0.5)
+    code4: 线程的子类化
+        import threading
+        import time
+
+        class CustomThread(threading.Thread):
+            def __init__(self, num, str1):
+                super().__init__()
+                self.num = num
+                self.str1 = str1
+
+            def run(self) -> None:
+                for i in range(3):
+                    time.sleep(1)
+                    msg = "I am %s@%s num:%d str1:%s" % (self.name, str(i), self.num, self.str1)
+                    print(msg)
+
+        if __name__ == '__main__':
+            for i in range(5):
+                t = CustomThread(10, "abc")
+                t.start()
+```
+    线程使用全局变量
+        注意:函数的值传递和引用传递的区别
+```python
+    import threading
+    import time
+
+    # 线程共享全局变量
+    # 注意这三个全局变量的区别 一般的变量是值传递和其他的引用传递
+    globalNum = 100
+    listVar = [10, 20, 30]
+    var = 10
+
+    def worker1(listVar, var):
+        """
+        :type var: int
+        :type listVar: list
+        """
+        global globalNum
+        for i in range(3):
+            globalNum += 1
+            listVar.append(44)
+            var += 10
+            print("in worker1, globalNum=%d, listVar:%s, var:%d" % (globalNum, listVar, var))
+
+    def worker2(listVar, var):
+        """
+        :type listVar: list
+        :type var: int
+        """
+        global globalNum
+        print("in worker2, globalNum=%d, listVar:%s, var:%d" % (globalNum, listVar, var))
+
+    if __name__ == '__main__':
+        # 主进程,globalNum=100 listVar:[10, 20, 30], var:10
+        print("主进程,globalNum=%d listVar:%s, var:%d" % (globalNum, listVar, var))
+        w1 = threading.Thread(target=worker1, args=(listVar, var))
+        w1.start()
+        time.sleep(1)
+        w2 = threading.Thread(target=worker2, args=(listVar, var))
+        w2.start()
+        print("主进程,globalNum=%d listVar:%s, var:%d" % (globalNum, listVar, var))
+        # 主进程,globalNum=103 listVar:[10, 20, 30, 44, 44, 44], var:10
+```
+    线程安全和线程同步
+        当多个线程几乎同时修改某一个共享数据的时候,需要进行同步控制
+        线程同步能够保证多个线程安全访问竞争资源,最简单的同步机制是引入互斥锁
+        互斥锁保证了每次只有一个线程进行写入操作,从而保证了多线程情况下数据的正确性
+        某个线程要更改共享数据时,先将其锁定,此时资源的状态为"锁定",其他线程不能更改
+            直到该线程释放资源,将资源的状态变成"非锁定",其他的线程才能再次锁定该资源
+        threading模块定义了Lock类,可以方便处理锁定
+        创建锁
+            mutex = threading.Lock()
+        锁定
+            mutex.acquire([blocking])
+                如果设定blocking为True,则当前线程会阻塞,直到获取到这个锁为止
+                    (如果没有指定,那么默认为True)
+                如果设定blocking为False,则当前线程不会阻塞
+        释放
+            mutex.release()
+
+        两把锁分别交叉嵌套容易造成死锁,线程相互等待,永远不能释放
+
+        python的Queue模块中提供了同步的,线程安全的队列类,包括:
+            FIFO(先进先出)队列Queue,
+            LIFO(后进先出)队列LifoQueue
+            优先级队列 PriorityQueue
+        这些队列都实现了锁原语(可以理解为原子操作,即要么不做,要么就做完),能够在多线程中直接使用
+
+        ThreadLocal变量
+            一个ThreadLocal变量虽然是全局变量,但每个线程都只能读写自己线程独立副本,互不干扰.
+                ThreadLocal解决了参数在一个线程中各个函数之间互相传递的问题
+            可以理解为全局变量local_shool是一个dict,可以绑定其他变量
+            ThreadLocal最常用的地方就是为每个线程绑定一个数据库连接,Http请求,用户身份信息等,
+                这样一个线程的所有调用到的处理函数都可以非常方便地访问这些资源
+
+```python
+    code1:普通操作
+        import threading
+
+        gNum = 0
+        # 创建互斥锁
+        mutex = threading.Lock()
+
+        def worker():
+            global gNum
+            for x in range(2000000):
+                # 加锁
+                lock = mutex.acquire(True)
+                if lock:
+                    gNum += 1
+                    # 解锁
+                    mutex.release()
+
+        if __name__ == '__main__':
+            threads = []
+            for i in range(2):
+                t = threading.Thread(target=worker)
+                t.start()
+                threads.append(t)
+            for t in threads:
+                t.join()
+            print("main thread:gNum=%d" % gNum)
+    code2: 类操作
+        from threading import Thread, Lock
+
+        class CustomThread(Thread):
+            num = 0
+            mutex = Lock()
+
+            def run(self) -> None:
+                for i in range(1000000):
+                    lock = CustomThread.mutex.acquire(True)
+                    if lock:
+                        CustomThread.num += 1
+                        CustomThread.mutex.release()
+
+        if __name__ == '__main__':
+            threads = []
+            for i in range(2):
+                t = CustomThread()
+                t.start()
+                threads.append(t)
+            for t in threads:
+                t.join()
+            print("main thread:gNum=%d" % CustomThread.num)
+    code3: 死锁
+        import time
+        from threading import Thread, Lock
+
+        class CustomThread(Thread):
+            mutexA = Lock()
+            mutexB = Lock()
+
+            def run(self) -> None:
+                if self.name == 'threadA':
+                    CustomThread.runThreadA()
+                else:
+                    CustomThread.runThreadB()
+
+            @staticmethod
+            def runThreadA():
+                if CustomThread.mutexA.acquire():
+                    print("threadA do something...")
+                    time.sleep(2)
+                    if CustomThread.mutexB.acquire():
+                        print("threadA get mutexB...")
+                        CustomThread.mutexB.release()
+                    CustomThread.mutexA.release()
+
+            @staticmethod
+            def runThreadB():
+                if CustomThread.mutexB.acquire():
+                    print("threadB do something...")
+                    time.sleep(2)
+                    if CustomThread.mutexA.acquire():
+                        print("threadB get mutexA...")
+                        CustomThread.mutexA.release()
+                    CustomThread.mutexB.release()
+
+        if __name__ == '__main__':
+            threadA = CustomThread(name="threadA")
+            threadB = CustomThread()
+            threadA.start()
+            threadB.start()
+    code4: 线程安全的队列类
+        import time
+        from threading import Thread
+        from queue import Queue
+
+        class Producter(Thread):
+            def __init__(self, queue):
+                """
+                :type queue: Queue
+                """
+                super().__init__()
+                self.queue = queue
+
+            def run(self) -> None:
+                while True:
+                    if self.queue.qsize() < 1000:
+                        for x in range(100):
+                            msg = "产品" + str(x)
+                            print("%s创建了%s" % (self.name, msg))
+                            queue.put(msg)
+                        time.sleep(1)
+
+        class Consumer(Thread):
+            def __init__(self, queue):
+                """
+                :type queue: Queue
+                """
+                super().__init__()
+                self.queue = queue
+
+            def run(self) -> None:
+                while True:
+                    if self.queue.qsize() > 100:
+                        for x in range(3):
+                            msg = self.queue.get()
+                            print("%s消费了%s" % (self.name, msg))
+                        time.sleep(0.5)
+
+
+        if __name__ == '__main__':
+            queue = Queue()
+            for i in range(500):
+                msg = "产品" + str(i)
+                queue.put(msg)
+            for i in range(2):
+                t = Producter(queue)
+                t.start()
+            for i in range(5):
+                c = Consumer(queue)
+                c.start()
+    code5:ThreadLocal变量
+        import threading
+
+        #  创建threadLocal变量
+        localSchool = threading.local()
+
+        def processStudent():
+            name = localSchool.student
+            print("hello %s in %s" % (name, threading.current_thread().name))
+
+        def processThread(name):
+            localSchool.student = name
+            processStudent()
+
+        if __name__ == '__main__':
+            t1 = threading.Thread(target=processThread, args=("张三",), name="t1")
+            t2 = threading.Thread(target=processThread, args=("老王",), name="t2")
+            t1.start()
+            t2.start()
+```
 # 安装库
     sudo pip3 install numpy -i https://mirrors.aliyun.com/pypi/simple/
 
